@@ -5,12 +5,12 @@ import datetime
 # MySQL Database Connection
 DB_CONFIG = {
     "host": "82.180.143.66",
-    "user": "u263681140_students1",
+    "user": "u263681140_students",
     "password": "testStudents@123",
-    "database": "u263681140_students1",
+    "database": "u263681140_students",
 }
 
-# Default credentials
+# Default login credentials
 USERNAME = "admin"
 PASSWORD = "password"
 
@@ -56,6 +56,17 @@ def insert_product(product_name, lot_number, mfg, expire):
         conn.close()
         st.success("Product registered successfully!")
 
+# Fetch the most recent entry
+def fetch_recent_entry():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)  # Fetch results as dictionary
+        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC LIMIT 1")
+        result = cursor.fetchone()
+        conn.close()
+        return result
+    return None
+
 # Login Page
 def login():
     st.title("Login Page")
@@ -80,6 +91,14 @@ def product_registration():
 
     if st.button("Submit"):
         insert_product(product_name, lot_number, manufacture_date, expiry_date)
+
+    # Fetch and display the most recent entry
+    recent_entry = fetch_recent_entry()
+    if recent_entry:
+        st.subheader("Most Recent Entry:")
+        st.write(recent_entry)  # Print dictionary format
+    else:
+        st.warning("No data found!")
 
 # Sidebar Navigation
 def sidebar():
