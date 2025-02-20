@@ -105,6 +105,16 @@ def display_products():
 
     else:
         st.warning("No products found in the database.")
+# Fetch all product data
+def fetch_all_products():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, COALESCE(Expire, '0000-00-00') AS Expire, QRCode FROM Enventry ORDER BY id DESC")
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    return []    
 
 def insert_product(product_name, lot_number, manufacture_date, expiry_date):
     conn = connect_db()
