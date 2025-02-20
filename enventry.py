@@ -23,7 +23,7 @@ DB_CONFIG = {
 
 # Default login credentials
 USERNAME = "admin"
-PASSWORD = "password"
+PASSWORD = "admin"
 
 # Login Page
 def login():
