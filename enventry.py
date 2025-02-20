@@ -187,7 +187,7 @@ else:
     
     if st.session_state.view_products:
         display_products()
-    elif(st.session_state.regester:)
+    elif st.session_state.regester:
         product_registration()
     else:
         product_registration()
