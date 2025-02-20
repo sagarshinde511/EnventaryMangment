@@ -69,31 +69,35 @@ def fetch_all_products():
         conn.close()
         return results
     return []
+    
 def display_products():
     st.title("All Registered Products")
 
     products = fetch_all_products()
 
     if products:
+        # Debug: Print column names to check their names
+        st.write("Fetched columns:", products[0].keys())
+
         # Prepare data for table
         table_data = []
         for product in products:
+            # Ensure column names exist
+            product_name = product.get("ProductName", "N/A")
+            lot_number = product.get("LotNumber", "N/A")
+            manufacture_date = product.get("Mfg", "N/A")  # Adjust key if different
+            expiry_date = product.get("Expire", "N/A")  # Adjust key if different
+
             # Create a downloadable link for QR Code
-            qr_code_data = product["QRCode"]
+            qr_code_data = product.get("QRCode")
             if qr_code_data:
                 b64 = base64.b64encode(qr_code_data).decode()  # Encode as Base64
-                href = f'<a href="data:image/png;base64,{b64}" download="QR_{product["LotNumber"]}.png">Download</a>'
+                href = f'<a href="data:image/png;base64,{b64}" download="QR_{lot_number}.png">Download</a>'
             else:
                 href = "No QR Code"
 
             # Append product details along with the download link
-            table_data.append([
-                product["ProductName"],
-                product["LotNumber"],
-                product["Mfg"],
-                product["Expire"],
-                href  # Add QR download link to table
-            ])
+            table_data.append([product_name, lot_number, manufacture_date, expiry_date, href])
 
         # Create DataFrame for table
         df = pd.DataFrame(table_data, columns=["Product Name", "Lot Number", "Manufacture Date", "Expiry Date", "Download QR Code"])
@@ -103,6 +107,8 @@ def display_products():
 
     else:
         st.warning("No products found in the database.")
+
+
 def product_registration():
     st.title("Product Registration")
 
