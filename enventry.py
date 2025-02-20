@@ -29,24 +29,6 @@ def connect_db():
         st.error(f"Database connection failed: {e}")
         return None
 
-# Create table if not exists (with QRCode column)
-def create_table():
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Enventry (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                ProductName VARCHAR(255),
-                LotNumber VARCHAR(255),
-                Mfg DATE,
-                Expire DATE,
-                QRCode LONGBLOB
-            )
-        """)
-        conn.commit()
-        conn.close()
-
 # Generate QR Code from dictionary
 def generate_qr_code(data_dict):
     qr = qrcode.QRCode(
