@@ -1,5 +1,14 @@
 import streamlit as st
+import mysql.connector
 import datetime
+
+# MySQL Database Connection
+DB_CONFIG = {
+    "host": "82.180.143.66",
+    "user": "u263681140_students",
+    "password": "testStudents@123",
+    "database": "u263681140_students",
+}
 
 # Default credentials
 USERNAME = "admin"
@@ -9,7 +18,45 @@ PASSWORD = "password"
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# Login page
+# Connect to MySQL
+def connect_db():
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        return conn
+    except mysql.connector.Error as e:
+        st.error(f"Database connection failed: {e}")
+        return None
+
+# Create table if not exists
+def create_table():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Enventry (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ProductName VARCHAR(255),
+                LotNumber VARCHAR(255),
+                Mfg DATE,
+                Expire DATE
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+# Insert product data into MySQL
+def insert_product(product_name, lot_number, mfg, expire):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        sql = "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire) VALUES (%s, %s, %s, %s)"
+        values = (product_name, lot_number, mfg, expire)
+        cursor.execute(sql, values)
+        conn.commit()
+        conn.close()
+        st.success("Product registered successfully!")
+
+# Login Page
 def login():
     st.title("Login Page")
     username = st.text_input("Username")
@@ -18,11 +65,11 @@ def login():
     if st.button("Login"):
         if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Invalid username or password")
 
-# Product registration page
+# Product Registration Page
 def product_registration():
     st.title("Product Registration")
 
@@ -32,21 +79,23 @@ def product_registration():
     expiry_date = st.date_input("Expiry Date", datetime.date.today())
 
     if st.button("Submit"):
-        st.success(f"Product '{product_name}' registered successfully!")
+        insert_product(product_name, lot_number, manufacture_date, expiry_date)
 
-# Sidebar navigation
+# Sidebar Navigation
 def sidebar():
     with st.sidebar:
         st.write("Navigation")
-        st.button("Logout", on_click=lambda: logout())
+        st.button("Logout", on_click=logout)
 
-# Logout function
+# Logout Function
 def logout():
     st.session_state.logged_in = False
     st.rerun()
 
+# Initialize database
+create_table()
 
-# App flow
+# App Flow
 if not st.session_state.logged_in:
     login()
 else:
