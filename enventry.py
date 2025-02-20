@@ -76,7 +76,7 @@ def display_products():
 
     if products:
         # Debug: Print column names to check their names
-        st.write("Fetched columns:", products[0].keys())
+        #st.write("Fetched columns:", products[0].keys())
 
         # Prepare data for table
         table_data = []
