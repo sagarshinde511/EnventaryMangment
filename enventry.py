@@ -59,16 +59,15 @@ def connect_db():
         st.error(f"Database connection failed: {e}")
         return None
 
-# Fetch all product data
-def fetch_all_products():
+def fetch_recent_entry():
     conn = connect_db()
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, COALESCE(Expire, '0000-00-00') AS Expire, QRCode FROM Enventry ORDER BY id DESC")
-        results = cursor.fetchall()
+        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC LIMIT 1")
+        result = cursor.fetchone()
         conn.close()
-        return results
-    return []    
+        return result
+    return None
 def display_products():
     st.title("All Registered Products")
 
@@ -107,6 +106,29 @@ def display_products():
     else:
         st.warning("No products found in the database.")
 
+def insert_product(product_name, lot_number, manufacture_date, expiry_date):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+
+        # Generate QR code
+        qr_data = f"{product_name} - {lot_number}"
+        qr = qrcode.make(qr_data)
+        qr_bytes = BytesIO()
+        qr.save(qr_bytes, format="PNG")
+        qr_code_data = qr_bytes.getvalue()
+
+        try:
+            cursor.execute(
+                "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire, QRCode) VALUES (%s, %s, %s, %s, %s)",
+                (product_name, lot_number, manufacture_date, expiry_date, qr_code_data),
+            )
+            conn.commit()
+            st.success("Product registered successfully!")
+        except mysql.connector.Error as e:
+            st.error(f"Error inserting data: {e}")
+        finally:
+            conn.close()
 
 def product_registration():
     st.title("Product Registration")
