@@ -64,12 +64,11 @@ def fetch_all_products():
     conn = connect_db()
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC")
+        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, COALESCE(Expire, '0000-00-00') AS Expire, QRCode FROM Enventry ORDER BY id DESC")
         results = cursor.fetchall()
         conn.close()
         return results
-    return []
-    
+    return []    
 def display_products():
     st.title("All Registered Products")
 
