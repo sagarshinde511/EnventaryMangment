@@ -144,8 +144,6 @@ def logout():
     st.rerun()
 
 # Initialize database
-create_table()
-
 # App Flow
 if not st.session_state.logged_in:
     login()
