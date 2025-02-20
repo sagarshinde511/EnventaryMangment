@@ -43,13 +43,20 @@ def sidebar():
     with st.sidebar:
         st.write("Navigation")
         if st.button("Check Products"):
+            
             st.session_state.view_products = True  # Set session state for product view
+            
             st.rerun()  # Force rerun to update the page
+        if st.button(" Products registration"):
+            st.session_state.view_products = False
+            st.session_state.regester = True  # Set session state for product view
+            st.rerun()  # Force rerun to update the page
+
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.view_products = False
             st.rerun()
-
+product_registration()
 # Connect to MySQL
 def connect_db():
     try:
@@ -180,5 +187,7 @@ else:
     
     if st.session_state.view_products:
         display_products()
+    elif(st.session_state.regester:)
+        product_registration()
     else:
         product_registration()
