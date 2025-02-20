@@ -7,9 +7,9 @@ from io import BytesIO
 # MySQL Database Connection
 DB_CONFIG = {
     "host": "82.180.143.66",
-    "user": "u263681140_students",
+    "user": "u263681140_students1",
     "password": "testStudents@123",
-    "database": "u263681140_students",
+    "database": "u263681140_students1",
 }
 
 # Default login credentials
