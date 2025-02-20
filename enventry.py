@@ -3,6 +3,8 @@ import mysql.connector
 import datetime
 import qrcode
 from io import BytesIO
+import pandas as pd
+import base64
 
 # Initialize session state variables
 if "logged_in" not in st.session_state:
@@ -67,42 +69,40 @@ def fetch_all_products():
         conn.close()
         return results
     return []
-# Product View Page
-# Product View Page
 def display_products():
     st.title("All Registered Products")
 
     products = fetch_all_products()
 
     if products:
-        # Convert list of dictionaries to a Pandas DataFrame for table display
-        import pandas as pd
-        df = pd.DataFrame(products)
-
-        # Exclude the QRCode binary data from table view
-        if "QRCode" in df.columns:
-            df = df.drop(columns=["QRCode"])
-
-        # Display table
-        st.dataframe(df)
-
-        # Display each QR code separately
+        # Prepare data for table
+        table_data = []
         for product in products:
-            if product["QRCode"]:
-                st.subheader(f"QR Code for {product['ProductName']} (Lot: {product['LotNumber']})")
-                st.image(BytesIO(product["QRCode"]), caption="Product QR Code", use_column_width=False)
+            # Create a downloadable link for QR Code
+            qr_code_data = product["QRCode"]
+            if qr_code_data:
+                b64 = base64.b64encode(qr_code_data).decode()  # Encode as Base64
+                href = f'<a href="data:image/png;base64,{b64}" download="QR_{product["LotNumber"]}.png">Download</a>'
+            else:
+                href = "No QR Code"
 
-                # Allow downloading the QR Code
-                st.download_button(
-                    label=f"Download QR Code ({product['LotNumber']})",
-                    data=product["QRCode"],
-                    file_name=f"QR_{product['LotNumber']}.png",
-                    mime="image/png"
-                )
-            st.markdown("---")
+            # Append product details along with the download link
+            table_data.append([
+                product["ProductName"],
+                product["LotNumber"],
+                product["Mfg"],
+                product["Expire"],
+                href  # Add QR download link to table
+            ])
+
+        # Create DataFrame for table
+        df = pd.DataFrame(table_data, columns=["Product Name", "Lot Number", "Manufacture Date", "Expiry Date", "Download QR Code"])
+
+        # Display table with HTML rendering for download links
+        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
     else:
         st.warning("No products found in the database.")
-
 def product_registration():
     st.title("Product Registration")
 
