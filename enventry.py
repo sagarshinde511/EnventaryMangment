@@ -1,6 +1,8 @@
 import streamlit as st
 import mysql.connector
 import datetime
+import qrcode
+from io import BytesIO
 
 # MySQL Database Connection
 DB_CONFIG = {
@@ -67,6 +69,25 @@ def fetch_recent_entry():
         return result
     return None
 
+# Generate QR Code from dictionary
+def generate_qr_code(data_dict):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(str(data_dict))  # Convert dictionary to string for QR encoding
+    qr.make(fit=True)
+
+    img = qr.make_image(fill="black", back_color="white")
+
+    # Save QR code to in-memory buffer
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
+
 # Login Page
 def login():
     st.title("Login Page")
@@ -92,13 +113,26 @@ def product_registration():
     if st.button("Submit"):
         insert_product(product_name, lot_number, manufacture_date, expiry_date)
 
-    # Fetch and display the most recent entry
-    recent_entry = fetch_recent_entry()
-    if recent_entry:
-        st.subheader("Most Recent Entry:")
-        st.write(recent_entry)  # Print dictionary format
-    else:
-        st.warning("No data found!")
+        # Fetch the most recent entry
+        recent_entry = fetch_recent_entry()
+
+        if recent_entry:
+            st.subheader("Most Recent Entry:")
+            st.write(recent_entry)  # Print dictionary format
+
+            # Generate and display QR code
+            qr_image = generate_qr_code(recent_entry)
+            st.image(qr_image, caption="Product QR Code", use_column_width=False)
+
+            # Allow downloading the QR Code
+            st.download_button(
+                label="Download QR Code",
+                data=qr_image,
+                file_name="product_qr.png",
+                mime="image/png"
+            )
+        else:
+            st.warning("No data found!")
 
 # Sidebar Navigation
 def sidebar():
