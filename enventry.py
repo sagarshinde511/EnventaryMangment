@@ -43,7 +43,8 @@ def sidebar():
 # Logout function
 def logout():
     st.session_state.logged_in = False
-    st.experimental_rerun()
+    st.rerun()
+
 
 # App flow
 if not st.session_state.logged_in:
