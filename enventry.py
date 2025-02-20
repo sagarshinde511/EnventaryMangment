@@ -48,6 +48,15 @@ def sidebar():
             st.session_state.view_products = False
             st.rerun()
 
+# Connect to MySQL
+def connect_db():
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        return conn
+    except mysql.connector.Error as e:
+        st.error(f"Database connection failed: {e}")
+        return None
+
 # Fetch all product data
 def fetch_all_products():
     conn = connect_db()
@@ -58,7 +67,6 @@ def fetch_all_products():
         conn.close()
         return results
     return []
-
 # Product View Page
 def display_products():
     st.title("All Registered Products")
