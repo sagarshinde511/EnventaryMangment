@@ -56,7 +56,7 @@ def sidebar():
             st.session_state.logged_in = False
             st.session_state.view_products = False
             st.rerun()
-product_registration()
+#product_registration()
 # Connect to MySQL
 def connect_db():
     try:
