@@ -68,21 +68,33 @@ def fetch_all_products():
         return results
     return []
 # Product View Page
+# Product View Page
 def display_products():
     st.title("All Registered Products")
+
     products = fetch_all_products()
 
     if products:
+        # Convert list of dictionaries to a Pandas DataFrame for table display
+        import pandas as pd
+        df = pd.DataFrame(products)
+
+        # Exclude the QRCode binary data from table view
+        if "QRCode" in df.columns:
+            df = df.drop(columns=["QRCode"])
+
+        # Display table
+        st.dataframe(df)
+
+        # Display each QR code separately
         for product in products:
-            st.write({key: product[key] for key in product if key != "QRCode"})  # Exclude QRCode from display
-            
-            # Display QR Code if available
             if product["QRCode"]:
+                st.subheader(f"QR Code for {product['ProductName']} (Lot: {product['LotNumber']})")
                 st.image(BytesIO(product["QRCode"]), caption="Product QR Code", use_column_width=False)
 
                 # Allow downloading the QR Code
                 st.download_button(
-                    label="Download QR Code",
+                    label=f"Download QR Code ({product['LotNumber']})",
                     data=product["QRCode"],
                     file_name=f"QR_{product['LotNumber']}.png",
                     mime="image/png"
@@ -91,7 +103,6 @@ def display_products():
     else:
         st.warning("No products found in the database.")
 
-# Product Registration Page
 def product_registration():
     st.title("Product Registration")
 
