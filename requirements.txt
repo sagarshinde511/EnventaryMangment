@@ -1,3 +1,4 @@
 mysql.connector
 qrcode
 pandas
+base64
