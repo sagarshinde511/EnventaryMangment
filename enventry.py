@@ -29,7 +29,7 @@ def connect_db():
         st.error(f"Database connection failed: {e}")
         return None
 
-# Create table if not exists
+# Create table if not exists (with QRCode column)
 def create_table():
     conn = connect_db()
     if conn:
@@ -40,34 +40,12 @@ def create_table():
                 ProductName VARCHAR(255),
                 LotNumber VARCHAR(255),
                 Mfg DATE,
-                Expire DATE
+                Expire DATE,
+                QRCode LONGBLOB
             )
         """)
         conn.commit()
         conn.close()
-
-# Insert product data into MySQL
-def insert_product(product_name, lot_number, mfg, expire):
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        sql = "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire) VALUES (%s, %s, %s, %s)"
-        values = (product_name, lot_number, mfg, expire)
-        cursor.execute(sql, values)
-        conn.commit()
-        conn.close()
-        st.success("Product registered successfully!")
-
-# Fetch the most recent entry
-def fetch_recent_entry():
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor(dictionary=True)  # Fetch results as dictionary
-        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC LIMIT 1")
-        result = cursor.fetchone()
-        conn.close()
-        return result
-    return None
 
 # Generate QR Code from dictionary
 def generate_qr_code(data_dict):
@@ -77,7 +55,7 @@ def generate_qr_code(data_dict):
         box_size=10,
         border=4,
     )
-    qr.add_data(str(data_dict))  # Convert dictionary to string for QR encoding
+    qr.add_data(str(data_dict))  # Convert dictionary to string
     qr.make(fit=True)
 
     img = qr.make_image(fill="black", back_color="white")
@@ -86,7 +64,45 @@ def generate_qr_code(data_dict):
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     buffer.seek(0)
-    return buffer
+    return buffer.getvalue()  # Return QR code as binary data
+
+# Insert product data into MySQL with QR code
+def insert_product(product_name, lot_number, mfg, expire):
+    # Create data dictionary
+    product_data = {
+        "ProductName": product_name,
+        "LotNumber": lot_number,
+        "Mfg": str(mfg),
+        "Expire": str(expire),
+    }
+
+    # Generate QR code
+    qr_code_data = generate_qr_code(product_data)
+
+    # Insert data into MySQL
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        sql = """
+            INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire, QRCode)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        values = (product_name, lot_number, mfg, expire, qr_code_data)
+        cursor.execute(sql, values)
+        conn.commit()
+        conn.close()
+        st.success("Product registered successfully!")
+
+# Fetch the most recent entry including QR Code
+def fetch_recent_entry():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)  # Fetch results as dictionary
+        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC LIMIT 1")
+        result = cursor.fetchone()
+        conn.close()
+        return result
+    return None
 
 # Login Page
 def login():
@@ -113,24 +129,24 @@ def product_registration():
     if st.button("Submit"):
         insert_product(product_name, lot_number, manufacture_date, expiry_date)
 
-        # Fetch the most recent entry
+        # Fetch and display the most recent entry
         recent_entry = fetch_recent_entry()
 
         if recent_entry:
             st.subheader("Most Recent Entry:")
-            st.write(recent_entry)  # Print dictionary format
+            st.write({key: recent_entry[key] for key in recent_entry if key != "QRCode"})  # Exclude QRCode from print
 
-            # Generate and display QR code
-            qr_image = generate_qr_code(recent_entry)
-            st.image(qr_image, caption="Product QR Code", use_column_width=False)
+            # Display QR Code from database
+            if recent_entry["QRCode"]:
+                st.image(BytesIO(recent_entry["QRCode"]), caption="Product QR Code", use_column_width=False)
 
-            # Allow downloading the QR Code
-            st.download_button(
-                label="Download QR Code",
-                data=qr_image,
-                file_name="product_qr.png",
-                mime="image/png"
-            )
+                # Allow downloading the QR Code
+                st.download_button(
+                    label="Download QR Code",
+                    data=recent_entry["QRCode"],
+                    file_name="product_qr.png",
+                    mime="image/png"
+                )
         else:
             st.warning("No data found!")
 
