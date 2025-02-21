@@ -166,16 +166,16 @@ def product_registration():
             st.write({key: recent_entry[key] for key in recent_entry if key != "QRCode"})  # Exclude QRCode from print
 
             # Display QR Code from database
-            if recent_entry["QRCode"]:
-                st.image(BytesIO(recent_entry["QRCode"]), caption="Product QR Code", use_column_width=False)
-
-                # Allow downloading the QR Code
-                st.download_button(
-                    label="Download QR Code",
-                    data=recent_entry["QRCode"],
-                    file_name="product_qr.png",
-                    mime="image/png"
-                )
+        if recent_entry["QRCode"]:
+            st.image(BytesIO(recent_entry["QRCode"]), caption="Product QR Code", use_column_width=False)
+    
+            # Allow downloading the QR Code
+            st.download_button(
+                label="Download QR Code",
+                data=recent_entry["QRCode"],
+                file_name="product_qr.png",
+                mime="image/png"
+            )
         else:
             st.warning("No data found!")
 
