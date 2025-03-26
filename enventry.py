@@ -154,19 +154,41 @@ def product_update():
 # Display Products
 def display_products():
     st.title("All Registered Products")
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT ProductName, LotNumber, Mfg, Expire FROM Enventry ORDER BY id DESC")
-        products = cursor.fetchall()
-        conn.close()
 
-        if products:
-            df = pd.DataFrame(products)
-            st.dataframe(df)
-        else:
-            st.warning("No products found in the database.")
+    products = fetch_all_products()
 
+    if products:
+        # Debug: Print column names to check their names
+        #st.write("Fetched columns:", products[0].keys())
+
+        # Prepare data for table
+        table_data = []
+        for product in products:
+            # Ensure column names exist
+            product_name = product.get("ProductName", "N/A")
+            lot_number = product.get("LotNumber", "N/A")
+            manufacture_date = product.get("Mfg", "N/A")  # Adjust key if different
+            expiry_date = product.get("Expire", "N/A")  # Adjust key if different
+
+            # Create a downloadable link for QR Code
+            qr_code_data = product.get("QRCode")
+            if qr_code_data:
+                b64 = base64.b64encode(qr_code_data).decode()  # Encode as Base64
+                href = f'<a href="data:image/png;base64,{b64}" download="QR_{lot_number}.png">Download</a>'
+            else:
+                href = "No QR Code"
+
+            # Append product details along with the download link
+            table_data.append([product_name, lot_number, manufacture_date, expiry_date, href])
+
+        # Create DataFrame for table
+        df = pd.DataFrame(table_data, columns=["Product Name", "Lot Number", "Manufacture Date", "Expiry Date", "Download QR Code"])
+
+        # Display table with HTML rendering for download links
+        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+    else:
+        st.warning("No products found in the database.")
 # Product Registration Page
 def product_registration():
     st.title("Product Registration")
