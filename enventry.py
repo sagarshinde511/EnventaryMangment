@@ -98,13 +98,14 @@ def fetch_product_details(product_id):
     conn = connect_db()
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Enventry WHERE id = %s", (product_id,))
-        product = cursor.fetchone()
+        cursor.execute("""
+            SELECT ProductName, LotNumber, Mfg, COALESCE(Expire, '2000-01-01') AS Expire
+            FROM Enventry WHERE id = %s
+        """, (product_id,))
+        result = cursor.fetchone()
         conn.close()
-        return product
-    return None
-
-# Update product 
+        return result if result else {}
+    return {}# Update product 
 def update_product(product_id, product_name, lot_number, manufacture_date, expiry_date):
     conn = connect_db()
     if conn:
