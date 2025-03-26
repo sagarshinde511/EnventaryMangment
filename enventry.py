@@ -123,7 +123,7 @@ def fetch_all_products():
         return results
     return []    
 
-def insert_product(product_name, lot_number, manufacture_date, expiry_date):
+def insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code_data):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
