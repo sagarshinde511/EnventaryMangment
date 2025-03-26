@@ -105,22 +105,39 @@ def fetch_product_details(product_id):
     return None
 
 # Update product details
-def update_product(product_id, product_name, lot_number, manufacture_date, expiry_date):
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "UPDATE Enventry SET ProductName = %s, LotNumber = %s, Mfg = %s, Expire = %s WHERE id = %s",
-                (product_name, lot_number, manufacture_date, expiry_date, product_id),
-            )
-            conn.commit()
-            st.success("Product updated successfully!")
-        except mysql.connector.Error as e:
-            st.error(f"Error updating data: {e}")
-        finally:
-            conn.close()
 
+def product_update():
+    st.title("Update Product Details")
+
+    # Fetch available products
+    products = fetch_product_names()
+    if not products:
+        st.warning("No products available for updating.")
+        return
+
+    product_dict = {name: pid for pid, name in products}
+    selected_product_name = st.selectbox("Select Product to Update", list(product_dict.keys()))
+
+    if selected_product_name:
+        product_id = product_dict[selected_product_name]
+        product_details = fetch_product_details(product_id)
+
+        if product_details:
+            new_product_name = st.text_input("Product Name", product_details.get("ProductName", ""))
+            new_lot_number = st.text_input("Lot Number", product_details.get("LotNumber", ""))
+            new_manufacture_date = st.date_input(
+                "Manufacture Date", 
+                datetime.datetime.strptime(product_details.get("Mfg", "2000-01-01"), "%Y-%m-%d").date()
+            )
+            new_expiry_date = st.date_input(
+                "Expiry Date", 
+                datetime.datetime.strptime(product_details.get("Expire", "2000-01-01"), "%Y-%m-%d").date()
+            )
+
+            if st.button("Update Product"):
+                update_product(product_id, new_product_name, new_lot_number, new_manufacture_date, new_expiry_date)
+        else:
+            st.error("Error fetching product details.")
 # Product Update Page
 def product_update():
     st.title("Update Product Details")
