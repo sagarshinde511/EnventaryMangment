@@ -168,7 +168,7 @@ def product_registration():
         data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date_str}, EXP: {expiry_date_str}"
         qr_code = generate_qr_code(data_string)
         
-        insert_product(product_name, lot_number, manufacture_date_str, expiry_date_str, qr_code)
+        insert_product(product_name, lot_number, manufacture_date,expiry_date , qr_code)
         
         recent_entry = fetch_recent_entry()
         
