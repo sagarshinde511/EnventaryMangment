@@ -145,7 +145,8 @@ def product_update():
             new_manufacture_date = st.date_input("Manufacture Date", datetime.datetime.strptime(product_details["Mfg"], "%Y-%m-%d").date())
             new_expiry_date = st.date_input("Expiry Date", datetime.datetime.strptime(product_details["Expire"], "%Y-%m-%d").date())
 
-            if st.button("Update Product"):
+            if st.button("Update Product", key="update_product_button"):
+
                 update_product(product_id, new_product_name, new_lot_number, new_manufacture_date, new_expiry_date)
         else:
             st.error("Error fetching product details.")
