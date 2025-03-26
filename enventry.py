@@ -17,7 +17,7 @@ if "register_product" not in st.session_state:
     st.session_state.register_product = False
 
 if "update_product" not in st.session_state:
-    st.session_state.update_product = False
+    st.session_state.update_product = False  # Ensure this is initialized
 
 # MySQL Database Connection
 DB_CONFIG = {
@@ -82,17 +82,6 @@ def connect_db():
         st.error(f"Database connection failed: {e}")
         return None
 
-# Fetch all product data
-def fetch_all_products():
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, Expire, QRCode FROM Enventry ORDER BY id DESC")
-        results = cursor.fetchall()
-        conn.close()
-        return results
-    return []
-
 # Fetch product names for dropdown
 def fetch_product_names():
     conn = connect_db()
@@ -132,43 +121,6 @@ def update_product(product_id, product_name, lot_number, manufacture_date, expir
         finally:
             conn.close()
 
-# Generate QR Code
-def generate_qr_code(data):
-    qr = qrcode.make(data)
-    buffer = BytesIO()
-    qr.save(buffer, format="PNG")
-    return buffer.getvalue()
-
-# Product Registration Page
-def product_registration():
-    st.title("Product Registration")
-
-    product_name = st.text_input("Product Name")
-    lot_number = st.text_input("Lot Number")
-    manufacture_date = st.date_input("Manufacture Date", datetime.date.today())
-    expiry_date = st.date_input("Expiry Date", datetime.date.today())
-
-    if st.button("Submit"):
-        qr_code = generate_qr_code(f"{product_name} - {lot_number}")
-        insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code)
-
-# Insert product into database
-def insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code_data):
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire, QRCode) VALUES (%s, %s, %s, %s, %s)",
-                (product_name, lot_number, manufacture_date, expiry_date, qr_code_data),
-            )
-            conn.commit()
-            st.success("Product registered successfully!")
-        except mysql.connector.Error as e:
-            st.error(f"Error inserting data: {e}")
-        finally:
-            conn.close()
-
 # Product Update Page
 def product_update():
     st.title("Update Product Details")
@@ -189,8 +141,8 @@ def product_update():
         if product_details:
             new_product_name = st.text_input("Product Name", product_details["ProductName"])
             new_lot_number = st.text_input("Lot Number", product_details["LotNumber"])
-            new_manufacture_date = st.date_input("Manufacture Date", product_details["Mfg"])
-            new_expiry_date = st.date_input("Expiry Date", product_details["Expire"])
+            new_manufacture_date = st.date_input("Manufacture Date", datetime.datetime.strptime(product_details["Mfg"], "%Y-%m-%d").date())
+            new_expiry_date = st.date_input("Expiry Date", datetime.datetime.strptime(product_details["Expire"], "%Y-%m-%d").date())
 
             if st.button("Update Product"):
                 update_product(product_id, new_product_name, new_lot_number, new_manufacture_date, new_expiry_date)
@@ -200,13 +152,43 @@ def product_update():
 # Display Products
 def display_products():
     st.title("All Registered Products")
-    products = fetch_all_products()
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT ProductName, LotNumber, Mfg, Expire FROM Enventry ORDER BY id DESC")
+        products = cursor.fetchall()
+        conn.close()
 
-    if products:
-        df = pd.DataFrame(products, columns=["ProductName", "LotNumber", "Mfg", "Expire"])
-        st.dataframe(df)
-    else:
-        st.warning("No products found in the database.")
+        if products:
+            df = pd.DataFrame(products)
+            st.dataframe(df)
+        else:
+            st.warning("No products found in the database.")
+
+# Product Registration Page
+def product_registration():
+    st.title("Product Registration")
+
+    product_name = st.text_input("Product Name")
+    lot_number = st.text_input("Lot Number")
+    manufacture_date = st.date_input("Manufacture Date", datetime.date.today())
+    expiry_date = st.date_input("Expiry Date", datetime.date.today())
+
+    if st.button("Submit"):
+        conn = connect_db()
+        if conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire) VALUES (%s, %s, %s, %s)",
+                    (product_name, lot_number, manufacture_date, expiry_date),
+                )
+                conn.commit()
+                st.success("Product registered successfully!")
+            except mysql.connector.Error as e:
+                st.error(f"Error inserting data: {e}")
+            finally:
+                conn.close()
 
 # App Flow
 if not st.session_state.logged_in:
