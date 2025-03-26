@@ -160,12 +160,15 @@ def product_registration():
     lot_number = st.text_input("Lot Number")
     manufacture_date = st.date_input("Manufacture Date", datetime.date.today())
     expiry_date = st.date_input("Expiry Date", datetime.date.today())
+    
+    manufacture_date_str = manufacture_date.strftime('%Y-%m-%d')
+    expiry_date_str = expiry_date.strftime('%Y-%m-%d')
 
     if st.button("Submit"):
-        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date.strftime('%Y-%m-%d')}, EXP: {expiry_date.strftime('%Y-%m-%d')}"
+        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date_str}, EXP: {expiry_date_str}"
         qr_code = generate_qr_code(data_string)
         
-        insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code)
+        insert_product(product_name, lot_number, manufacture_date_str, expiry_date_str, qr_code)
         
         recent_entry = fetch_recent_entry()
         
@@ -184,6 +187,7 @@ def product_registration():
                 )
         else:
             st.warning("No data found!")
+
 # App Flow
 if not st.session_state.logged_in:
     login()
