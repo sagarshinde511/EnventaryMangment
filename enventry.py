@@ -111,7 +111,7 @@ def update_product(product_id, product_name, lot_number, manufacture_date, expir
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "UPDATE Enventry SET ProductName = %s, LotNumber = %s, Mfg = %s, Expire = %s WHERE id = %s",
+                "UPDATE Enventry SET ProductName = %s, LotNumber = %s, Mfg = %s, expire = %s WHERE id = %s",
                 (product_name, lot_number, manufacture_date, expiry_date, product_id),
             )
             conn.commit()
