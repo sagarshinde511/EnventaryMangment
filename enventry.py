@@ -104,7 +104,23 @@ def fetch_product_details(product_id):
         return product
     return None
 
-# Update product details
+# Update product 
+def update_product(product_id, product_name, lot_number, manufacture_date, expiry_date):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE Enventry SET ProductName = %s, LotNumber = %s, Mfg = %s, Expire = %s WHERE id = %s",
+                (product_name, lot_number, manufacture_date, expiry_date, product_id),
+            )
+            conn.commit()
+            st.success("Product updated successfully!")
+        except mysql.connector.Error as e:
+            st.error(f"Error updating data: {e}")
+        finally:
+            conn.close()
+
 # Product Update Page
 def product_update():
     st.title("Update Product Details")
