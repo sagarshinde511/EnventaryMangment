@@ -150,7 +150,15 @@ def product_update():
                 update_product(product_id, new_product_name, new_lot_number, new_manufacture_date, new_expiry_date)
         else:
             st.error("Error fetching product details.")
-
+def fetch_all_products():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, COALESCE(Expire, '0000-00-00') AS Expire, QRCode FROM Enventry ORDER BY id DESC")
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    return []    
 # Display Products
 def display_products():
     st.title("All Registered Products")
