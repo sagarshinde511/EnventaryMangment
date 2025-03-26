@@ -147,6 +147,12 @@ def insert_product(product_name, lot_number, manufacture_date, expiry_date):
         finally:
             conn.close()
 
+def generate_qr_code(data):
+    qr = qrcode.make(data)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    return buffer.getvalue()
+
 def product_registration():
     st.title("Product Registration")
 
@@ -156,29 +162,28 @@ def product_registration():
     expiry_date = st.date_input("Expiry Date", datetime.date.today())
 
     if st.button("Submit"):
-        insert_product(product_name, lot_number, manufacture_date, expiry_date)
-
-        # Fetch and display the most recent entry
+        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date}, EXP: {expiry_date}"
+        qr_code = generate_qr_code(data_string)
+        
+        insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code)
+        
         recent_entry = fetch_recent_entry()
-
+        
         if recent_entry:
             st.subheader("Most Recent Entry:")
-            st.write({key: recent_entry[key] for key in recent_entry if key != "QRCode"})  # Exclude QRCode from print
-
-            # Display QR Code from database
-        if recent_entry["QRCode"]:
-            st.image(BytesIO(recent_entry["QRCode"]), caption="Product QR Code", use_column_width=False)
-    
-            # Allow downloading the QR Code
-            st.download_button(
-                label="Download QR Code",
-                data=recent_entry["QRCode"],
-                file_name="product_qr.png",
-                mime="image/png"
-            )
+            st.write({key: recent_entry[key] for key in recent_entry if key != "QRCode"})
+            
+            if qr_code:
+                st.image(BytesIO(qr_code), caption="Product QR Code", use_column_width=False)
+                
+                st.download_button(
+                    label="Download QR Code",
+                    data=qr_code,
+                    file_name="product_qr.png",
+                    mime="image/png"
+                )
         else:
             st.warning("No data found!")
-
 # App Flow
 if not st.session_state.logged_in:
     login()
