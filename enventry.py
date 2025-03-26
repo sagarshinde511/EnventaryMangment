@@ -13,6 +13,12 @@ if "logged_in" not in st.session_state:
 if "view_products" not in st.session_state:
     st.session_state.view_products = False
 
+if "register_product" not in st.session_state:
+    st.session_state.register_product = False
+
+if "update_product" not in st.session_state:
+    st.session_state.update_product = False
+
 # MySQL Database Connection
 DB_CONFIG = {
     "host": "82.180.143.66",
@@ -43,20 +49,30 @@ def sidebar():
     with st.sidebar:
         st.write("Navigation")
         if st.button("Check Products"):
-            
-            st.session_state.view_products = True  # Set session state for product view
-            
-            st.rerun()  # Force rerun to update the page
-        if st.button(" Products registration"):
+            st.session_state.view_products = True
+            st.session_state.register_product = False
+            st.session_state.update_product = False
+            st.rerun()
+
+        if st.button("Register Product"):
             st.session_state.view_products = False
-            st.session_state.regester = True  # Set session state for product view
-            st.rerun()  # Force rerun to update the page
+            st.session_state.register_product = True
+            st.session_state.update_product = False
+            st.rerun()
+
+        if st.button("Update Product"):
+            st.session_state.view_products = False
+            st.session_state.register_product = False
+            st.session_state.update_product = True
+            st.rerun()
 
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.view_products = False
+            st.session_state.register_product = False
+            st.session_state.update_product = False
             st.rerun()
-#product_registration()
+
 # Connect to MySQL
 def connect_db():
     try:
@@ -66,75 +82,81 @@ def connect_db():
         st.error(f"Database connection failed: {e}")
         return None
 
-def fetch_recent_entry():
-    conn = connect_db()
-    if conn:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Enventry ORDER BY id DESC LIMIT 1")
-        result = cursor.fetchone()
-        conn.close()
-        return result
-    return None
-def display_products():
-    st.title("All Registered Products")
-
-    products = fetch_all_products()
-
-    if products:
-        # Debug: Print column names to check their names
-        #st.write("Fetched columns:", products[0].keys())
-
-        # Prepare data for table
-        table_data = []
-        for product in products:
-            # Ensure column names exist
-            product_name = product.get("ProductName", "N/A")
-            lot_number = product.get("LotNumber", "N/A")
-            manufacture_date = product.get("Mfg", "N/A")  # Adjust key if different
-            expiry_date = product.get("Expire", "N/A")  # Adjust key if different
-
-            # Create a downloadable link for QR Code
-            qr_code_data = product.get("QRCode")
-            if qr_code_data:
-                b64 = base64.b64encode(qr_code_data).decode()  # Encode as Base64
-                href = f'<a href="data:image/png;base64,{b64}" download="QR_{lot_number}.png">Download</a>'
-            else:
-                href = "No QR Code"
-
-            # Append product details along with the download link
-            table_data.append([product_name, lot_number, manufacture_date, expiry_date, href])
-
-        # Create DataFrame for table
-        df = pd.DataFrame(table_data, columns=["Product Name", "Lot Number", "Manufacture Date", "Expiry Date", "Download QR Code"])
-
-        # Display table with HTML rendering for download links
-        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-    else:
-        st.warning("No products found in the database.")
 # Fetch all product data
 def fetch_all_products():
     conn = connect_db()
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, COALESCE(Expire, '0000-00-00') AS Expire, QRCode FROM Enventry ORDER BY id DESC")
+        cursor.execute("SELECT id, ProductName, LotNumber, Mfg, Expire, QRCode FROM Enventry ORDER BY id DESC")
         results = cursor.fetchall()
         conn.close()
         return results
-    return []    
+    return []
 
+# Fetch product names for dropdown
+def fetch_product_names():
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, ProductName FROM Enventry ORDER BY ProductName ASC")
+        products = cursor.fetchall()
+        conn.close()
+        return products
+    return []
+
+# Fetch product details by ID
+def fetch_product_details(product_id):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Enventry WHERE id = %s", (product_id,))
+        product = cursor.fetchone()
+        conn.close()
+        return product
+    return None
+
+# Update product details
+def update_product(product_id, product_name, lot_number, manufacture_date, expiry_date):
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "UPDATE Enventry SET ProductName = %s, LotNumber = %s, Mfg = %s, Expire = %s WHERE id = %s",
+                (product_name, lot_number, manufacture_date, expiry_date, product_id),
+            )
+            conn.commit()
+            st.success("Product updated successfully!")
+        except mysql.connector.Error as e:
+            st.error(f"Error updating data: {e}")
+        finally:
+            conn.close()
+
+# Generate QR Code
+def generate_qr_code(data):
+    qr = qrcode.make(data)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+# Product Registration Page
+def product_registration():
+    st.title("Product Registration")
+
+    product_name = st.text_input("Product Name")
+    lot_number = st.text_input("Lot Number")
+    manufacture_date = st.date_input("Manufacture Date", datetime.date.today())
+    expiry_date = st.date_input("Expiry Date", datetime.date.today())
+
+    if st.button("Submit"):
+        qr_code = generate_qr_code(f"{product_name} - {lot_number}")
+        insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code)
+
+# Insert product into database
 def insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code_data):
     conn = connect_db()
     if conn:
         cursor = conn.cursor()
-
-        # Generate QR code
-        qr_data = f"{product_name} - {lot_number}"
-        qr = qrcode.make(qr_data)
-        qr_bytes = BytesIO()
-        qr.save(qr_bytes, format="PNG")
-        qr_code_data = qr_bytes.getvalue()
-
         try:
             cursor.execute(
                 "INSERT INTO Enventry (ProductName, LotNumber, Mfg, Expire, QRCode) VALUES (%s, %s, %s, %s, %s)",
@@ -147,56 +169,54 @@ def insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_c
         finally:
             conn.close()
 
-def generate_qr_code(data):
-    qr = qrcode.make(data)
-    buffer = BytesIO()
-    qr.save(buffer, format="PNG")
-    return buffer.getvalue()
+# Product Update Page
+def product_update():
+    st.title("Update Product Details")
 
-def product_registration():
-    st.title("Product Registration")
+    # Fetch available products
+    products = fetch_product_names()
+    if not products:
+        st.warning("No products available for updating.")
+        return
 
-    product_name = st.text_input("Product Name")
-    lot_number = st.text_input("Lot Number")
-    manufacture_date = st.date_input("Manufacture Date", datetime.date.today())
-    expiry_date = st.date_input("Expiry Date", datetime.date.today())
-    
-    manufacture_date_str = manufacture_date.strftime('%Y-%m-%d')
-    expiry_date_str = expiry_date.strftime('%Y-%m-%d')
+    product_dict = {name: pid for pid, name in products}
+    selected_product_name = st.selectbox("Select Product to Update", list(product_dict.keys()))
 
-    if st.button("Submit"):
-        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date_str}, EXP: {expiry_date_str}"
-        qr_code = generate_qr_code(data_string)
-        
-        insert_product(product_name, lot_number, manufacture_date,expiry_date , qr_code)
-        
-        recent_entry = fetch_recent_entry()
-        
-        if recent_entry:
-            st.subheader("Most Recent Entry:")
-            st.write({key: recent_entry[key] for key in recent_entry if key != "QRCode"})
-            
-            if qr_code:
-                st.image(BytesIO(qr_code), caption="Product QR Code", use_column_width=False)
-                
-                st.download_button(
-                    label="Download QR Code",
-                    data=qr_code,
-                    file_name="product_qr.png",
-                    mime="image/png"
-                )
+    if selected_product_name:
+        product_id = product_dict[selected_product_name]
+        product_details = fetch_product_details(product_id)
+
+        if product_details:
+            new_product_name = st.text_input("Product Name", product_details["ProductName"])
+            new_lot_number = st.text_input("Lot Number", product_details["LotNumber"])
+            new_manufacture_date = st.date_input("Manufacture Date", product_details["Mfg"])
+            new_expiry_date = st.date_input("Expiry Date", product_details["Expire"])
+
+            if st.button("Update Product"):
+                update_product(product_id, new_product_name, new_lot_number, new_manufacture_date, new_expiry_date)
         else:
-            st.warning("No data found!")
+            st.error("Error fetching product details.")
+
+# Display Products
+def display_products():
+    st.title("All Registered Products")
+    products = fetch_all_products()
+
+    if products:
+        df = pd.DataFrame(products, columns=["ProductName", "LotNumber", "Mfg", "Expire"])
+        st.dataframe(df)
+    else:
+        st.warning("No products found in the database.")
 
 # App Flow
 if not st.session_state.logged_in:
     login()
 else:
     sidebar()
-    
+
     if st.session_state.view_products:
         display_products()
-    elif st.session_state.regester:
+    elif st.session_state.register_product:
         product_registration()
-    else:
-        product_registration()
+    elif st.session_state.update_product:
+        product_update()
