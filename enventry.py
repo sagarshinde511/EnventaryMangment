@@ -162,7 +162,7 @@ def product_registration():
     expiry_date = st.date_input("Expiry Date", datetime.date.today())
 
     if st.button("Submit"):
-        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date}, EXP: {expiry_date}"
+        data_string = f"Product: {product_name}, Lot: {lot_number}, MFG: {manufacture_date.strftime('%Y-%m-%d')}, EXP: {expiry_date.strftime('%Y-%m-%d')}"
         qr_code = generate_qr_code(data_string)
         
         insert_product(product_name, lot_number, manufacture_date, expiry_date, qr_code)
